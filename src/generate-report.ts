@@ -335,8 +335,11 @@ if (require.main === module) {
     const files = fs
       .readdirSync(reportsDir)
       .filter((f) => f.endsWith(".json"))
-      .sort()
-      .reverse();
+      .sort((a, b) => {
+        const mtimeA = fs.statSync(path.join(reportsDir, a)).mtimeMs;
+        const mtimeB = fs.statSync(path.join(reportsDir, b)).mtimeMs;
+        return mtimeB - mtimeA;
+      });
 
     if (files.length === 0) {
       console.error("No report files found in reports/");
