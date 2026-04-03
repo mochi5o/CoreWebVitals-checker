@@ -11,6 +11,18 @@ Playwright + web-vitals を使った、本番サイト向けの Core Web Vitals 
 | CLS (Cumulative Layout Shift) | web-vitals + 全ページスクロール | < 0.1 |
 | LCP (Largest Contentful Paint) | PerformanceObserver | < 2500ms |
 
+## 計測デバイス
+
+Mobile / Tablet / Desktop の3デバイスで計測します。
+
+| デバイス | ビューポート | UA |
+|---|---|---|
+| Mobile | 390 × 844 | iPhone (iOS 17) |
+| Tablet | 768 × 1024 | iPad (iOS 17) |
+| Desktop | 1280 × 720 | デスクトップ |
+
+すべて Chromium で実行されます。
+
 ## セットアップ
 
 ```bash
@@ -80,12 +92,25 @@ URL: https://example.com
 Date: 2026/4/3 13:32:11
 Thresholds: CLS < 0.1 | LCP < 2500ms
 
+▶ Mobile
 Page                 | CLS          | LCP          | Status
-───────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────
 トップ                  | 0.0012       | 432ms        | ✅
 記事詳細                 | 0.1399       | 1180ms       | ⚠️
 
-Result: 1/2 pages passed all thresholds
+▶ Tablet
+Page                 | CLS          | LCP          | Status
+────────────────────────────────────────────────────────────
+トップ                  | 0.0008       | 510ms        | ✅
+記事詳細                 | 0.0921       | 980ms        | ✅
+
+▶ Desktop
+Page                 | CLS          | LCP          | Status
+────────────────────────────────────────────────────────────
+トップ                  | 0.0003       | 320ms        | ✅
+記事詳細                 | 0.0450       | 850ms        | ✅
+
+Result: 5/6 pages passed all thresholds
 ```
 
 ### HTML
