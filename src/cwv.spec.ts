@@ -5,32 +5,25 @@ import { loadSiteConfig } from "./config";
 
 const siteConfig = loadSiteConfig();
 
-interface CwvResult {
-  page: string;
-  path: string;
-  CLS?: number;
-  LCP?: number;
-  timestamp: string;
-}
+// web-vitals IIFE版のソースをインラインで注入するために読み込む
+const webVitalsScript = fs.readFileSync(
+  path.resolve(__dirname, "../node_modules/web-vitals/dist/web-vitals.iife.js"),
+  "utf-8"
+);
 
-const results: CwvResult[] = [];
+const resultsPath = path.resolve(process.cwd(), "reports", ".results.jsonl");
 
 for (const targetPage of siteConfig.pages) {
   test(`CWV: ${targetPage.name} (${targetPage.path})`, async ({ page }) => {
-    // web-vitals の CLS / LCP を収集するスクリプトを注入
+    // web-vitals をインラインで注入
     await page.addInitScript({
       content: `
+        ${webVitalsScript}
+
         const metrics = {};
         window.__CWV__ = metrics;
-
-        // web-vitals CDN版を使用（addInitScript内ではnpmモジュールをimportできないため）
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/web-vitals@4/dist/web-vitals.iife.js';
-        script.onload = () => {
-          webVitals.onCLS((m) => { metrics.CLS = m.value; }, { reportAllChanges: true });
-          webVitals.onLCP((m) => { metrics.LCP = m.value; });
-        };
-        document.head.appendChild(script);
+        webVitals.onCLS((m) => { metrics.CLS = m.value; }, { reportAllChanges: true });
+        webVitals.onLCP((m) => { metrics.LCP = m.value; });
       `,
     });
 
@@ -44,61 +37,38 @@ for (const targetPage of siteConfig.pages) {
         window.scrollTo(0, y);
         await new Promise((r) => setTimeout(r, 300));
       }
-      // 最後まで到達後、少し待つ
       window.scrollTo(0, scrollHeight);
       await new Promise((r) => setTimeout(r, 500));
     });
 
-    // web-vitals の読み込みと計測完了を待つ
+    // web-vitals の計測完了を待つ
     await page.waitForTimeout(1000);
 
     const metrics = await page.evaluate(() => (window as any).__CWV__);
 
-    const result: CwvResult = {
+    // 結果をJSONLファイルに追記（ワーカー再起動でもデータが失われない）
+    const result = {
       page: targetPage.name,
       path: targetPage.path,
       CLS: metrics?.CLS,
       LCP: metrics?.LCP,
       timestamp: new Date().toISOString(),
     };
-    results.push(result);
+    fs.appendFileSync(resultsPath, JSON.stringify(result) + "\n");
 
-    // 閾値チェック
+    // 閾値チェック（soft assertionで全ページ計測を続行）
     if (metrics?.CLS !== undefined) {
-      expect(
+      expect.soft(
         metrics.CLS,
         `CLS が閾値超過: ${metrics.CLS} (閾値: ${siteConfig.thresholds.CLS})`
       ).toBeLessThan(siteConfig.thresholds.CLS);
     }
 
     if (metrics?.LCP !== undefined) {
-      expect(
+      expect.soft(
         metrics.LCP,
         `LCP が閾値超過: ${metrics.LCP}ms (閾値: ${siteConfig.thresholds.LCP}ms)`
       ).toBeLessThan(siteConfig.thresholds.LCP);
     }
   });
 }
-
-// 全テスト完了後にJSONレポートを出力
-test.afterAll(async () => {
-  const reportsDir = path.resolve(process.cwd(), "reports");
-  if (!fs.existsSync(reportsDir)) {
-    fs.mkdirSync(reportsDir, { recursive: true });
-  }
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const fileName = `${siteConfig.name}_${timestamp}.json`;
-  const filePath = path.join(reportsDir, fileName);
-
-  const report = {
-    site: siteConfig.name,
-    baseUrl: siteConfig.baseUrl,
-    thresholds: siteConfig.thresholds,
-    timestamp: new Date().toISOString(),
-    results,
-  };
-
-  fs.writeFileSync(filePath, JSON.stringify(report, null, 2));
-  console.log(`\nReport saved: ${filePath}`);
-});

@@ -4,6 +4,8 @@ import { loadSiteConfig } from "./src/config";
 const siteConfig = loadSiteConfig();
 
 export default defineConfig({
+  globalSetup: "./src/global-setup.ts",
+  globalTeardown: "./src/global-teardown.ts",
   testDir: "./src",
   testMatch: "**/*.spec.ts",
   fullyParallel: false,
