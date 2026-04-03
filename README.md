@@ -30,6 +30,16 @@ npm install
 npx playwright install chromium
 ```
 
+### サイト設定の初期化
+
+対話形式で `sites/default.json` を作成できます。各項目で Enter を押すとデフォルト値が使われます。
+
+```bash
+make init
+```
+
+作成後、ページの追加や変更は `sites/default.json` を直接編集してください。
+
 ## 使い方
 
 ### 計測を実行
