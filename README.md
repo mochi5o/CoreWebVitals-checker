@@ -68,7 +68,7 @@ npm run report:open
 SITE_CONFIG=sites/other-site.json npm run monitor
 ```
 
-環境変数 `SITE_CONFIG` を指定しない場合、デフォルトで `sites/jichitai-works.json` を読み込みます。`.env` ファイルでも設定できます（`.env.example` を参照）。
+環境変数 `SITE_CONFIG` を指定しない場合、デフォルトで `sites/default.json` を読み込みます。`.env` ファイルでも設定できます（`.env.example` を参照）。
 
 ## 出力例
 

@@ -21,7 +21,7 @@ export interface SiteConfig {
 }
 
 export function loadSiteConfig(): SiteConfig {
-  const configPath = process.env.SITE_CONFIG || "sites/jichitai-works.json";
+  const configPath = process.env.SITE_CONFIG || "sites/default.json";
   const absolutePath = path.isAbsolute(configPath)
     ? configPath
     : path.resolve(process.cwd(), configPath);
