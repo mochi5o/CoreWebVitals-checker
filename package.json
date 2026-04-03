@@ -1,0 +1,15 @@
+{
+  "name": "core-web-vitals-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright-based Core Web Vitals monitoring tool for production sites",
+  "scripts": {
+    "monitor": "npx playwright test",
+    "report": "npx playwright show-report reports/html"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "dotenv": "^16.5.0",
+    "web-vitals": "^4.2.4"
+  }
+}

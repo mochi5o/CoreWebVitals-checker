@@ -1,0 +1,13 @@
+{
+  "name": "example-site",
+  "baseUrl": "https://example.com",
+  "pages": [
+    { "name": "トップ", "path": "/" },
+    { "name": "一覧", "path": "/articles" },
+    { "name": "詳細", "path": "/articles/123" }
+  ],
+  "thresholds": {
+    "CLS": 0.1,
+    "LCP": 2500
+  }
+}
