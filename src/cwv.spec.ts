@@ -14,7 +14,8 @@ const webVitalsScript = fs.readFileSync(
 const resultsPath = path.resolve(process.cwd(), "reports", ".results.jsonl");
 
 for (const targetPage of siteConfig.pages) {
-  test(`CWV: ${targetPage.name} (${targetPage.path})`, async ({ page }) => {
+  test(`CWV: ${targetPage.name} (${targetPage.path})`, async ({ page }, testInfo) => {
+    const device = testInfo.project.name;
     // CLS: web-vitalsで計測、LCP: PerformanceObserverで直接計測
     await page.addInitScript({
       content: `
@@ -57,6 +58,7 @@ for (const targetPage of siteConfig.pages) {
     const result = {
       page: targetPage.name,
       path: targetPage.path,
+      device,
       CLS: metrics?.CLS,
       LCP: metrics?.LCP,
       timestamp: new Date().toISOString(),

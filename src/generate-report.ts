@@ -4,6 +4,7 @@ import * as path from "path";
 interface CwvResult {
   page: string;
   path: string;
+  device?: string;
   CLS?: number;
   LCP?: number;
   timestamp: string;
@@ -46,6 +47,29 @@ function statusEmoji(status: string): string {
   }
 }
 
+function getWorstStatus(
+  r: CwvResult,
+  thresholds: Report["thresholds"]
+): string {
+  const clsStatus = getStatus(r.CLS, thresholds.CLS);
+  const lcpStatus = getStatus(r.LCP, thresholds.LCP);
+  if (clsStatus === "poor" || lcpStatus === "poor") return "poor";
+  if (clsStatus === "needs-improvement" || lcpStatus === "needs-improvement")
+    return "needs-improvement";
+  if (clsStatus === "n/a" && lcpStatus === "n/a") return "n/a";
+  return "good";
+}
+
+function groupByDevice(results: CwvResult[]): Map<string, CwvResult[]> {
+  const groups = new Map<string, CwvResult[]>();
+  for (const r of results) {
+    const device = r.device || "Default";
+    if (!groups.has(device)) groups.set(device, []);
+    groups.get(device)!.push(r);
+  }
+  return groups;
+}
+
 export function printTerminalSummary(report: Report): void {
   const { thresholds, results } = report;
 
@@ -58,57 +82,40 @@ export function printTerminalSummary(report: Report): void {
   console.log(
     `Thresholds: CLS < ${thresholds.CLS} | LCP < ${thresholds.LCP}ms`
   );
-  console.log("");
 
-  // ヘッダー
-  const cols = {
-    page: 20,
-    cls: 12,
-    lcp: 12,
-    status: 8,
-  };
+  const deviceGroups = groupByDevice(results);
 
-  const header = [
-    "Page".padEnd(cols.page),
-    "CLS".padEnd(cols.cls),
-    "LCP".padEnd(cols.lcp),
-    "Status",
-  ].join(" | ");
+  for (const [device, deviceResults] of deviceGroups) {
+    console.log("");
+    console.log(`\u25b6 ${device}`);
 
-  console.log(header);
-  console.log("\u2500".repeat(header.length));
-
-  for (const r of results) {
-    const clsStatus = getStatus(r.CLS, thresholds.CLS);
-    const lcpStatus = getStatus(r.LCP, thresholds.LCP);
-
-    const worstStatus =
-      clsStatus === "poor" || lcpStatus === "poor"
-        ? "poor"
-        : clsStatus === "needs-improvement" || lcpStatus === "needs-improvement"
-          ? "needs-improvement"
-          : clsStatus === "n/a" && lcpStatus === "n/a"
-            ? "n/a"
-            : "good";
-
-    const line = [
-      r.page.padEnd(cols.page),
-      formatValue(r.CLS, "").padEnd(cols.cls),
-      formatValue(r.LCP, "ms").padEnd(cols.lcp),
-      statusEmoji(worstStatus),
+    const cols = { page: 20, cls: 12, lcp: 12 };
+    const header = [
+      "Page".padEnd(cols.page),
+      "CLS".padEnd(cols.cls),
+      "LCP".padEnd(cols.lcp),
+      "Status",
     ].join(" | ");
 
-    console.log(line);
+    console.log(header);
+    console.log("\u2500".repeat(header.length));
+
+    for (const r of deviceResults) {
+      const line = [
+        r.page.padEnd(cols.page),
+        formatValue(r.CLS, "").padEnd(cols.cls),
+        formatValue(r.LCP, "ms").padEnd(cols.lcp),
+        statusEmoji(getWorstStatus(r, thresholds)),
+      ].join(" | ");
+      console.log(line);
+    }
   }
 
   console.log("");
 
-  // サマリー
   const passed = results.filter((r) => {
-    const clsOk =
-      r.CLS === undefined || r.CLS < thresholds.CLS;
-    const lcpOk =
-      r.LCP === undefined || r.LCP < thresholds.LCP;
+    const clsOk = r.CLS === undefined || r.CLS < thresholds.CLS;
+    const lcpOk = r.LCP === undefined || r.LCP < thresholds.LCP;
     return clsOk && lcpOk;
   });
 
@@ -120,21 +127,43 @@ export function printTerminalSummary(report: Report): void {
 
 export function generateHtmlReport(report: Report): string {
   const { thresholds, results } = report;
+  const deviceGroups = groupByDevice(results);
 
-  const rows = results
-    .map((r) => {
-      const clsStatus = getStatus(r.CLS, thresholds.CLS);
-      const lcpStatus = getStatus(r.LCP, thresholds.LCP);
+  const deviceSections = Array.from(deviceGroups.entries())
+    .map(([device, deviceResults]) => {
+      const rows = deviceResults
+        .map((r) => {
+          const clsStatus = getStatus(r.CLS, thresholds.CLS);
+          const lcpStatus = getStatus(r.LCP, thresholds.LCP);
+
+          return `
+          <tr>
+            <td class="page-name">
+              <a href="${report.baseUrl}${r.path}" target="_blank">${r.page}</a>
+              <span class="page-path">${r.path}</span>
+            </td>
+            <td class="${clsStatus}">${formatValue(r.CLS, "")}</td>
+            <td class="${lcpStatus}">${formatValue(r.LCP, "ms")}</td>
+          </tr>`;
+        })
+        .join("\n");
 
       return `
-      <tr>
-        <td class="page-name">
-          <a href="${report.baseUrl}${r.path}" target="_blank">${r.page}</a>
-          <span class="page-path">${r.path}</span>
-        </td>
-        <td class="${clsStatus}">${formatValue(r.CLS, "")}</td>
-        <td class="${lcpStatus}">${formatValue(r.LCP, "ms")}</td>
-      </tr>`;
+      <div class="device-section">
+        <h2>${device}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>CLS</th>
+              <th>LCP</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>`;
     })
     .join("\n");
 
@@ -186,6 +215,15 @@ export function generateHtmlReport(report: Report): string {
       font-size: 1.25rem;
       font-weight: 600;
       margin-top: 0.25rem;
+    }
+    .device-section {
+      margin-bottom: 2rem;
+    }
+    .device-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      padding-left: 0.25rem;
     }
     table {
       width: 100%;
@@ -276,18 +314,7 @@ export function generateHtmlReport(report: Report): string {
       </div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Page</th>
-          <th>CLS</th>
-          <th>LCP</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
+    ${deviceSections}
 
     <div class="legend">
       <span class="legend-item legend-good">Good</span>
