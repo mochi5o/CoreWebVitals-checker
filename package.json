@@ -5,11 +5,13 @@
   "description": "Playwright-based Core Web Vitals monitoring tool for production sites",
   "scripts": {
     "monitor": "npx playwright test",
-    "report": "npx playwright show-report reports/html"
+    "report": "npx tsx src/generate-report.ts",
+    "report:open": "open reports/*.html"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
     "dotenv": "^16.5.0",
+    "tsx": "^4.21.0",
     "web-vitals": "^4.2.4"
   }
 }

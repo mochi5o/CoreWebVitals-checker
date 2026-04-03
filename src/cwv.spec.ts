@@ -15,7 +15,7 @@ const resultsPath = path.resolve(process.cwd(), "reports", ".results.jsonl");
 
 for (const targetPage of siteConfig.pages) {
   test(`CWV: ${targetPage.name} (${targetPage.path})`, async ({ page }) => {
-    // web-vitals をインラインで注入
+    // CLS: web-vitalsで計測、LCP: PerformanceObserverで直接計測
     await page.addInitScript({
       content: `
         ${webVitalsScript}
@@ -23,7 +23,14 @@ for (const targetPage of siteConfig.pages) {
         const metrics = {};
         window.__CWV__ = metrics;
         webVitals.onCLS((m) => { metrics.CLS = m.value; }, { reportAllChanges: true });
-        webVitals.onLCP((m) => { metrics.LCP = m.value; });
+
+        // LCPはPerformanceObserverで直接取得（web-vitalsのonLCPはvisibilitychange依存のため）
+        new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          if (entries.length > 0) {
+            metrics.LCP = entries[entries.length - 1].startTime;
+          }
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
       `,
     });
 
@@ -41,7 +48,7 @@ for (const targetPage of siteConfig.pages) {
       await new Promise((r) => setTimeout(r, 500));
     });
 
-    // web-vitals の計測完了を待つ
+    // 計測完了を待つ
     await page.waitForTimeout(1000);
 
     const metrics = await page.evaluate(() => (window as any).__CWV__);

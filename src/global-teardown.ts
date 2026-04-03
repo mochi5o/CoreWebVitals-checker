@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { loadSiteConfig } from "./config";
+import { printTerminalSummary, generateHtmlReport } from "./generate-report";
 
 export default function globalTeardown() {
   const siteConfig = loadSiteConfig();
@@ -20,10 +21,7 @@ export default function globalTeardown() {
   const results = lines.map((line) => JSON.parse(line));
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const reportPath = path.join(
-    reportsDir,
-    `${siteConfig.name}_${timestamp}.json`
-  );
+  const baseName = `${siteConfig.name}_${timestamp}`;
 
   const report = {
     site: siteConfig.name,
@@ -33,8 +31,20 @@ export default function globalTeardown() {
     results,
   };
 
-  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  // JSON出力
+  const jsonPath = path.join(reportsDir, `${baseName}.json`);
+  fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2));
+
+  // HTML出力
+  const htmlPath = path.join(reportsDir, `${baseName}.html`);
+  fs.writeFileSync(htmlPath, generateHtmlReport(report));
+
+  // 一時ファイル削除
   fs.unlinkSync(resultsPath);
 
-  console.log(`\nReport saved: ${reportPath}`);
+  // ターミナルサマリー
+  printTerminalSummary(report);
+
+  console.log(`JSON report: ${jsonPath}`);
+  console.log(`HTML report: ${htmlPath}`);
 }
