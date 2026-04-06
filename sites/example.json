@@ -9,5 +9,9 @@
   "thresholds": {
     "CLS": 0.1,
     "LCP": 2500
+  },
+  "httpCredentials": {
+    "username": "your_user",
+    "password": "your_pass"
   }
 }

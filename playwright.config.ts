@@ -14,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL: siteConfig.baseUrl,
     headless: true,
+    httpCredentials: siteConfig.httpCredentials,
   },
   projects: [
     {

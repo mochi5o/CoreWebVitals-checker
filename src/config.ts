@@ -18,6 +18,10 @@ export interface SiteConfig {
     LCP: number;
     INP?: number;
   };
+  httpCredentials?: {
+    username: string;
+    password: string;
+  };
 }
 
 export function loadSiteConfig(): SiteConfig {
