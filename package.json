@@ -6,7 +6,7 @@
   "scripts": {
     "monitor": "npx playwright test",
     "report": "npx tsx src/generate-report.ts",
-    "report:open": "open reports/*.html"
+    "report:open": "open $(ls -t reports/*.html | head -1)"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
